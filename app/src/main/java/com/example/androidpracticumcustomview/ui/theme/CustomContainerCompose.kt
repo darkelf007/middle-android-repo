@@ -33,14 +33,14 @@ import kotlinx.coroutines.launch
 fun CustomContainerCompose(
     firstChild: @Composable (() -> Unit)?,
     secondChild: @Composable (() -> Unit)?,
-    durationAlphaMillis: Int = 5000,
+    durationAlphaMillis: Int = 2000,
     durationOffsetMillis: Int = 5000
 ) {
-    require(
-        (firstChild == null && secondChild == null) ||
-                (firstChild != null && secondChild == null) ||
-                (firstChild == null && secondChild != null)
-    ) { "CustomContainerCompose can have maximum 2 children" }
+    val children = listOf(firstChild, secondChild)
+
+    if (children.count { it != null } > 2) {
+        throw IllegalStateException("CustomContainerCompose может содержать не более 2 элементов")
+    }
 
     val alphaAnimation = remember { Animatable(0f) }
     val offsetAnimation = remember { Animatable(0f) }

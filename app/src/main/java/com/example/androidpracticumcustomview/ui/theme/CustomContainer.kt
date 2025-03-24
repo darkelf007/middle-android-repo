@@ -23,7 +23,7 @@ import android.widget.FrameLayout
 class CustomContainer @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    private val animationDuration: Long = 5000L,
+    private val animationDuration: Long = 2000L,
     private val offsetDuration: Long = 5000L
 ) : FrameLayout(context, attrs) {
 
