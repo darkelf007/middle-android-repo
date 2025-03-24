@@ -1,7 +1,6 @@
 package com.example.androidpracticumcustomview.ui.theme
 
 import android.content.Context
-import android.graphics.Color
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -30,7 +29,6 @@ class CustomContainer @JvmOverloads constructor(
 
     init {
         setWillNotDraw(false)
-        setBackgroundColor(Color.parseColor("#3300FF00"))
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -39,12 +37,10 @@ class CustomContainer @JvmOverloads constructor(
             try {
                 val child = getChildAt(i)
                 val childWidthSpec = MeasureSpec.makeMeasureSpec(
-                    MeasureSpec.getSize(widthMeasureSpec) / 2,
-                    MeasureSpec.AT_MOST
+                    MeasureSpec.getSize(widthMeasureSpec) / 2, MeasureSpec.AT_MOST
                 )
                 val childHeightSpec = MeasureSpec.makeMeasureSpec(
-                    MeasureSpec.getSize(heightMeasureSpec) / 2,
-                    MeasureSpec.AT_MOST
+                    MeasureSpec.getSize(heightMeasureSpec) / 2, MeasureSpec.AT_MOST
                 )
                 child.measure(childWidthSpec, childHeightSpec)
             } catch (e: Exception) {
@@ -79,7 +75,6 @@ class CustomContainer @JvmOverloads constructor(
         if (childCount >= 2) throw IllegalStateException("Cannot add more than two children")
         try {
             child.visibility = View.INVISIBLE
-            child.setBackgroundColor(Color.parseColor("#550000FF"))
             super.addView(child)
         } catch (e: Exception) {
             handleChildError(e, "Error adding child")
@@ -88,27 +83,21 @@ class CustomContainer @JvmOverloads constructor(
     }
 
     private fun animateChild(view: View, isSecond: Boolean) {
-        Log.d("CustomContainer", "Animating view: ${view.width}x${view.height} in container: ${width}x${height}")
         try {
             if (view.width == 0 || view.height == 0 || width == 0 || height == 0) {
-                Log.e("CustomContainer", "Invalid dimensions")
                 return
             }
 
             val initialTop = (height - view.height) / 2
             val finalTop = if (isSecond) height - view.height else 0
             val toY = (finalTop - initialTop).toFloat()
-
-            Log.d("CustomContainer", "Moving from $initialTop to $finalTop (delta: $toY)")
-
             val animationSet = AnimationSet(true).apply {
                 addAnimation(AlphaAnimation(0f, 1f).apply {
                     duration = animationDuration
                 })
 
                 addAnimation(TranslateAnimation(
-                    0f, 0f,
-                    0f, toY
+                    0f, 0f, 0f, toY
                 ).apply {
                     duration = offsetDuration
                     interpolator = AccelerateDecelerateInterpolator()
