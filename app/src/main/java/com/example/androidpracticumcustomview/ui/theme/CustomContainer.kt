@@ -1,6 +1,7 @@
 package com.example.androidpracticumcustomview.ui.theme
 
 import android.content.Context
+import android.graphics.Color
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -29,13 +30,23 @@ class CustomContainer @JvmOverloads constructor(
 
     init {
         setWillNotDraw(false)
+        setBackgroundColor(Color.parseColor("#3300FF00"))
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         for (i in 0 until childCount) {
             try {
-                measureChild(getChildAt(i), widthMeasureSpec, heightMeasureSpec)
+                val child = getChildAt(i)
+                val childWidthSpec = MeasureSpec.makeMeasureSpec(
+                    MeasureSpec.getSize(widthMeasureSpec) / 2,
+                    MeasureSpec.AT_MOST
+                )
+                val childHeightSpec = MeasureSpec.makeMeasureSpec(
+                    MeasureSpec.getSize(heightMeasureSpec) / 2,
+                    MeasureSpec.AT_MOST
+                )
+                child.measure(childWidthSpec, childHeightSpec)
             } catch (e: Exception) {
                 handleChildError(e, "Error measuring child $i")
             }
@@ -49,9 +60,7 @@ class CustomContainer @JvmOverloads constructor(
             val childHeight = child.measuredHeight
             val childLeft = (width - childWidth) / 2
             val childTop = (height - childHeight) / 2
-            child.layout(
-                childLeft, childTop, childLeft + childWidth, childTop + childHeight
-            )
+            child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight)
         }
 
         if (childCount == 2) {
@@ -70,6 +79,7 @@ class CustomContainer @JvmOverloads constructor(
         if (childCount >= 2) throw IllegalStateException("Cannot add more than two children")
         try {
             child.visibility = View.INVISIBLE
+            child.setBackgroundColor(Color.parseColor("#550000FF"))
             super.addView(child)
         } catch (e: Exception) {
             handleChildError(e, "Error adding child")
@@ -78,33 +88,47 @@ class CustomContainer @JvmOverloads constructor(
     }
 
     private fun animateChild(view: View, isSecond: Boolean) {
+        Log.d("CustomContainer", "Animating view: ${view.width}x${view.height} in container: ${width}x${height}")
         try {
+            if (view.width == 0 || view.height == 0 || width == 0 || height == 0) {
+                Log.e("CustomContainer", "Invalid dimensions")
+                return
+            }
+
+            val initialTop = (height - view.height) / 2
+            val finalTop = if (isSecond) height - view.height else 0
+            val toY = (finalTop - initialTop).toFloat()
+
+            Log.d("CustomContainer", "Moving from $initialTop to $finalTop (delta: $toY)")
+
             val animationSet = AnimationSet(true).apply {
                 addAnimation(AlphaAnimation(0f, 1f).apply {
                     duration = animationDuration
                 })
 
-                val fromY = 0f
-                val toY = if (isSecond) {
-                    (height / 2 + view.height).toFloat()
-                } else {
-                    -(height / 2 + view.height).toFloat()
-                }
-
                 addAnimation(TranslateAnimation(
-                    0f, 0f, fromY, toY
+                    0f, 0f,
+                    0f, toY
                 ).apply {
                     duration = offsetDuration
                     interpolator = AccelerateDecelerateInterpolator()
                 })
 
-                fillAfter = true
                 setAnimationListener(object : Animation.AnimationListener {
                     override fun onAnimationStart(animation: Animation?) {
                         view.visibility = View.VISIBLE
                     }
 
-                    override fun onAnimationEnd(animation: Animation?) {}
+                    override fun onAnimationEnd(animation: Animation?) {
+                        view.layout(
+                            (width - view.width) / 2,
+                            finalTop,
+                            (width + view.width) / 2,
+                            finalTop + view.height
+                        )
+                        view.clearAnimation()
+                    }
+
                     override fun onAnimationRepeat(animation: Animation?) {}
                 })
             }
@@ -113,7 +137,6 @@ class CustomContainer @JvmOverloads constructor(
         } catch (e: Exception) {
             handleChildError(e, "Error animating child")
         }
-
     }
 
     private fun handleChildError(e: Exception, message: String) {
