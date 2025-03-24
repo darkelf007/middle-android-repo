@@ -2,6 +2,7 @@ package com.example.androidpracticumcustomview.ui.theme
 
 import android.util.Log
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.graphics.graphicsLayer
@@ -34,7 +36,7 @@ import kotlinx.coroutines.launch
 fun CustomContainerCompose(
     firstChild: @Composable (() -> Unit)?,
     secondChild: @Composable (() -> Unit)?,
-    durationAlphaMillis: Int = 1,
+    durationAlphaMillis: Int = 4000,
     durationOffsetMillis: Int = 5000
 ) {
     require(
@@ -51,13 +53,13 @@ fun CustomContainerCompose(
         launch {
             alphaAnimation.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationAlphaMillis)
+                animationSpec = tween(durationMillis = durationAlphaMillis, easing = LinearEasing)
             )
         }
         launch {
             offsetAnimation.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationOffsetMillis, easing = LinearOutSlowInEasing)
+                animationSpec = tween(durationMillis = durationOffsetMillis, easing = LinearOutSlowInEasing)
             )
         }
     }
@@ -69,12 +71,10 @@ fun CustomContainerCompose(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .graphicsLayer(alpha = alphaAnimation.value)
-                    .offset {
-                        IntOffset(
-                            x = 0,
-                            y = (-offsetAnimation.value * boxHeight / 2).toInt()
-                        )
+                    // Здесь совмещаем обе анимации через graphicsLayer
+                    .graphicsLayer {
+                        alpha = alphaAnimation.value
+                        translationY = -offsetAnimation.value * boxHeight / 2
                     }
             ) {
                 ErrorBoundary(content = content)
@@ -85,12 +85,9 @@ fun CustomContainerCompose(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .graphicsLayer(alpha = alphaAnimation.value)
-                    .offset {
-                        IntOffset(
-                            x = 0,
-                            y = (offsetAnimation.value * boxHeight / 2).toInt()
-                        )
+                    .graphicsLayer {
+                        alpha = alphaAnimation.value
+                        translationY = offsetAnimation.value * boxHeight / 2
                     }
             ) {
                 ErrorBoundary(content = content)
