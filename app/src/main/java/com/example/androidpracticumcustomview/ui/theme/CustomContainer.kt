@@ -2,8 +2,11 @@ package com.example.androidpracticumcustomview.ui.theme
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
+import android.view.animation.AnimationSet
 import android.view.animation.TranslateAnimation
 import android.widget.FrameLayout
 
@@ -17,8 +20,13 @@ import android.widget.FrameLayout
  */
 
 class CustomContainer @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null
+    context: Context,
+    attrs: AttributeSet? = null,
+    private val animationDuration: Long = 2000L,
+    private val offsetDuration: Long = 5000L
 ) : FrameLayout(context, attrs) {
+
+
 
     init {
         setWillNotDraw(false)
@@ -27,52 +35,91 @@ class CustomContainer @JvmOverloads constructor(
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         for (i in 0 until childCount) {
-            measureChild(getChildAt(i), widthMeasureSpec, heightMeasureSpec)
+            try {
+                measureChild(getChildAt(i), widthMeasureSpec, heightMeasureSpec)
+            } catch (e: Exception) {
+                handleChildError(e, "Error measuring child $i")
+            }
         }
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         for (i in 0 until childCount) {
-            val child = getChildAt(i)
-            val childWidth = child.measuredWidth
-            val childHeight = child.measuredHeight
-            val childLeft = (width - childWidth) / 2
-            val childTop = if (i == 0) 0 else height - childHeight
+            try {
+                val child = getChildAt(i)
+                val childWidth = child.measuredWidth
+                val childHeight = child.measuredHeight
+                val childLeft = (width - childWidth) / 2
+                val childTop = (height - childHeight) / 2
 
-            child.layout(
-                childLeft,
-                childTop,
-                childLeft + childWidth,
-                childTop + childHeight
-            )
+                child.layout(
+                    childLeft, childTop,
+                    childLeft + childWidth, childTop + childHeight
+                )
+                if (child.visibility == View.INVISIBLE) {
+                    animateChild(child, i == 1)
+                }
+            } catch (e: Exception) {
+                handleChildError(e, "Error laying out child $i")
+            }
         }
     }
 
     override fun addView(child: View) {
         if (childCount >= 2) throw IllegalStateException("Cannot add more than two children")
-        child.visibility = View.INVISIBLE
-        super.addView(child)
-        animateChild(child, childCount == 1)
+        try {
+            child.visibility = View.INVISIBLE
+            super.addView(child)
+            animateChild(child, childCount == 1)
+        } catch (e: Exception) {
+            handleChildError(e, "Error adding child")
+            throw e
+        }
     }
 
 
     private fun animateChild(view: View, isSecond: Boolean) {
-        val alphaAnimation = AlphaAnimation(0f, 1f).apply {
-            duration = 2000
-            fillAfter = true
-        }
-
-        val translateAnimation = TranslateAnimation(
-            0f, 0f, height / 2f, if (isSecond) height / 2f else -height / 2.1f
-        ).apply {
-            duration = 5000
-            fillAfter = true
-        }
-
         view.post {
-            view.visibility = View.VISIBLE
-            view.startAnimation(alphaAnimation)
-            view.startAnimation(translateAnimation)
+            try {
+                val animationSet = AnimationSet(true).apply {
+                    addAnimation(AlphaAnimation(0f, 1f).apply {
+                        duration = animationDuration
+                    })
+
+                    val fromY = 0f
+                    val toY = if (isSecond) {
+                        (height - view.top - view.height).toFloat()
+                    } else {
+                        -view.top.toFloat()
+                    }
+
+                    addAnimation(TranslateAnimation(
+                        0f, 0f,
+                        fromY, toY
+                    ).apply {
+                        duration = offsetDuration
+                    })
+
+                    fillAfter = true
+                    setAnimationListener(object : Animation.AnimationListener {
+                        override fun onAnimationStart(animation: Animation?) {
+                            view.visibility = View.VISIBLE
+                        }
+
+                        override fun onAnimationEnd(animation: Animation?) {}
+                        override fun onAnimationRepeat(animation: Animation?) {}
+                    })
+                }
+
+                view.startAnimation(animationSet)
+            } catch (e: Exception) {
+                handleChildError(e, "Error animating child")
+            }
         }
     }
+
+    private fun handleChildError(e: Exception, message: String) {
+        Log.e("CustomContainer", message, e)
+    }
 }
+

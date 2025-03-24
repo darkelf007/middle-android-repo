@@ -36,7 +36,6 @@ class XmlActivity : ComponentActivity() {
 
         customContainer.addView(firstView)
 
-        // Добавление второго элемента с задержкой
         Handler(Looper.getMainLooper()).postDelayed({
             customContainer.addView(secondView)
         }, 2000)

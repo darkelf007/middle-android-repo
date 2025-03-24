@@ -1,5 +1,6 @@
 package com.example.androidpracticumcustomview.ui.theme
 
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -7,14 +8,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.launch
 
 
 /*
@@ -28,59 +33,94 @@ import androidx.compose.ui.unit.IntOffset
 @Composable
 fun CustomContainerCompose(
     firstChild: @Composable (() -> Unit)?,
-    secondChild: @Composable (() -> Unit)?
+    secondChild: @Composable (() -> Unit)?,
+    durationAlphaMillis: Int = 1,
+    durationOffsetMillis: Int = 5000
 ) {
-    if (listOfNotNull(firstChild, secondChild).size > 2) {
-        throw IllegalStateException("Cannot have more than two children")
-    }
+    require(
+        (firstChild == null && secondChild == null) ||
+                (firstChild != null && secondChild == null) ||
+                (firstChild == null && secondChild != null) ||
+                (firstChild != null && secondChild != null)
+    ) { "CustomContainerCompose can have maximum 2 children" }
 
     val alphaAnimation = remember { Animatable(0f) }
     val offsetAnimation = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        alphaAnimation.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(2000)
-        )
-        offsetAnimation.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(5000, easing = LinearOutSlowInEasing)
-        )
+        launch {
+            alphaAnimation.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationAlphaMillis)
+            )
+        }
+        launch {
+            offsetAnimation.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationOffsetMillis, easing = LinearOutSlowInEasing)
+            )
+        }
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val boxHeight = constraints.maxHeight
+        val boxHeight = constraints.maxHeight.toFloat()
 
-        firstChild?.let {
+        firstChild?.let { content ->
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
+                    .align(Alignment.Center)
                     .graphicsLayer(alpha = alphaAnimation.value)
                     .offset {
                         IntOffset(
                             x = 0,
-                            y = ((-offsetAnimation.value * boxHeight) / 2).toInt()
+                            y = (-offsetAnimation.value * boxHeight / 2).toInt()
                         )
                     }
             ) {
-                it()
+                ErrorBoundary(content = content)
             }
         }
 
-        secondChild?.let {
+        secondChild?.let { content ->
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
+                    .align(Alignment.Center)
                     .graphicsLayer(alpha = alphaAnimation.value)
                     .offset {
                         IntOffset(
                             x = 0,
-                            y = ((offsetAnimation.value * boxHeight) / 2).toInt()
+                            y = (offsetAnimation.value * boxHeight / 2).toInt()
                         )
                     }
             ) {
-                it()
+                ErrorBoundary(content = content)
             }
         }
+    }
+}
+
+@Composable
+private fun ErrorBoundary(content: @Composable () -> Unit) {
+    val errorState = remember { mutableStateOf<Throwable?>(null) }
+
+
+    val errorHandler = remember {
+        Thread.UncaughtExceptionHandler { _, e ->
+            Log.e("CustomContainer", "Render error", e)
+            errorState.value = e
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        Thread.setDefaultUncaughtExceptionHandler(errorHandler)
+    }
+
+    if (errorState.value != null) {
+        Text(
+            text = "Render error: ${errorState.value?.message}",
+            color = Color.Red
+        )
+    } else {
+        content()
     }
 }
