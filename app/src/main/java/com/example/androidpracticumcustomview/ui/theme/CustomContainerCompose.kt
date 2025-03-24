@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.launch
 
@@ -36,7 +37,7 @@ import kotlinx.coroutines.launch
 fun CustomContainerCompose(
     firstChild: @Composable (() -> Unit)?,
     secondChild: @Composable (() -> Unit)?,
-    durationAlphaMillis: Int = 4000,
+    durationAlphaMillis: Int = 5000,
     durationOffsetMillis: Int = 5000
 ) {
     require(
@@ -65,16 +66,22 @@ fun CustomContainerCompose(
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val boxHeight = constraints.maxHeight.toFloat()
+        val containerHeight = constraints.maxHeight.toFloat()
+        val firstChildHeight = remember { mutableStateOf(0f) }
+        val secondChildHeight = remember { mutableStateOf(0f) }
 
         firstChild?.let { content ->
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    // Здесь совмещаем обе анимации через graphicsLayer
+                    .onGloballyPositioned { coordinates ->
+                        firstChildHeight.value = coordinates.size.height.toFloat()
+                    }
                     .graphicsLayer {
                         alpha = alphaAnimation.value
-                        translationY = -offsetAnimation.value * boxHeight / 2
+                        val offset = offsetAnimation.value
+                        val maxOffset = (containerHeight - firstChildHeight.value) / 2
+                        translationY = -maxOffset * offset
                     }
             ) {
                 ErrorBoundary(content = content)
@@ -85,9 +92,14 @@ fun CustomContainerCompose(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .onGloballyPositioned { coordinates ->
+                        secondChildHeight.value = coordinates.size.height.toFloat()
+                    }
                     .graphicsLayer {
                         alpha = alphaAnimation.value
-                        translationY = offsetAnimation.value * boxHeight / 2
+                        val offset = offsetAnimation.value
+                        val maxOffset = (containerHeight - secondChildHeight.value) / 2
+                        translationY = maxOffset * offset
                     }
             ) {
                 ErrorBoundary(content = content)
