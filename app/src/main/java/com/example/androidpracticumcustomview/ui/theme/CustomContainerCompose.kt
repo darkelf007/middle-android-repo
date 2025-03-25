@@ -1,8 +1,24 @@
 package com.example.androidpracticumcustomview.ui.theme
 
+import android.util.Log
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import kotlinx.coroutines.launch
 
 
 /*
@@ -16,20 +32,98 @@ import androidx.compose.runtime.LaunchedEffect
 @Composable
 fun CustomContainerCompose(
     firstChild: @Composable (() -> Unit)?,
-    secondChild: @Composable (() -> Unit)?
+    secondChild: @Composable (() -> Unit)?,
+    durationAlphaMillis: Int = 2000,
+    durationOffsetMillis: Int = 5000
 ) {
-    // Блок создания и инициализации переменных
-    // ..
+    val children = remember { listOfNotNull(firstChild, secondChild) }
 
-    // Блок активации анимации при первом запуске
+    if (children.isEmpty()) return
+
+    val alphaAnimation = remember { Animatable(0f) }
+    val offsetAnimation = remember { Animatable(0f) }
+
     LaunchedEffect(Unit) {
-        // TODO
-        // ...
+        launch {
+            alphaAnimation.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = durationAlphaMillis, easing = LinearEasing)
+            )
+        }
+        launch {
+            offsetAnimation.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = durationOffsetMillis,
+                    easing = LinearOutSlowInEasing
+                )
+            )
+        }
     }
 
-    // Основной контейнер
-    Box() {
-        // TODO
-        // ...
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val containerHeight = constraints.maxHeight.toFloat()
+
+        firstChild?.let { content ->
+            val firstChildHeight = remember { mutableStateOf(0f) }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .onGloballyPositioned { coordinates ->
+                        firstChildHeight.value = coordinates.size.height.toFloat()
+                    }
+                    .graphicsLayer {
+                        alpha = alphaAnimation.value
+                        val offset = offsetAnimation.value
+                        val maxOffset = (containerHeight - firstChildHeight.value) / 2
+                        translationY = -maxOffset * offset
+                    }
+            ) {
+                ErrorBoundary(content = content)
+            }
+        }
+
+        secondChild?.let { content ->
+            val secondChildHeight = remember { mutableStateOf(0f) }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .onGloballyPositioned { coordinates ->
+                        secondChildHeight.value = coordinates.size.height.toFloat()
+                    }
+                    .graphicsLayer {
+                        alpha = alphaAnimation.value
+                        val offset = offsetAnimation.value
+                        val maxOffset = (containerHeight - secondChildHeight.value) / 2
+                        translationY = maxOffset * offset
+                    }
+            ) {
+                ErrorBoundary(content = content)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorBoundary(content: @Composable () -> Unit) {
+    val errorState = remember { mutableStateOf<Throwable?>(null) }
+    val errorHandler = remember {
+        Thread.UncaughtExceptionHandler { _, e ->
+            Log.e("CustomContainer", "Render error", e)
+            errorState.value = e
+        }
+    }
+    LaunchedEffect(Unit) {
+        Thread.setDefaultUncaughtExceptionHandler(errorHandler)
+    }
+    if (errorState.value != null) {
+        Text(
+            text = "Render error: ${errorState.value?.message}",
+            color = Color.Red
+        )
+    } else {
+        content()
     }
 }

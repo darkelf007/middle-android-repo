@@ -3,6 +3,7 @@ package com.example.androidpracticumcustomview
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.Gravity
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.example.androidpracticumcustomview.ui.theme.CustomContainer
@@ -22,16 +23,19 @@ class XmlActivity : ComponentActivity() {
         }
 
         val firstView = TextView(this).apply {
-            // TODO
-            // ...
+            text = "Первый элемент (XML)"
+            textSize = 20f
+            gravity = Gravity.CENTER
         }
 
         val secondView = TextView(this).apply {
-            // TODO
-            // ...
+            text = "Второй элемент (XML)"
+            textSize = 20f
+            gravity = Gravity.CENTER
         }
 
-        // Добавление второго элемента через некоторое время (например, по задержке)
+        customContainer.addView(firstView)
+
         Handler(Looper.getMainLooper()).postDelayed({
             customContainer.addView(secondView)
         }, 2000)
