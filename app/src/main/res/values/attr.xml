@@ -1,0 +1,6 @@
+<resources>
+    <declare-styleable name="CustomContainer">
+        <attr name="animationDuration" format="integer" />
+        <attr name="offsetDuration" format="integer" />
+    </declare-styleable>
+</resources>

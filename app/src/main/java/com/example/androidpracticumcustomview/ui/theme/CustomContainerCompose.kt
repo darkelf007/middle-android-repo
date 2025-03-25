@@ -36,11 +36,9 @@ fun CustomContainerCompose(
     durationAlphaMillis: Int = 2000,
     durationOffsetMillis: Int = 5000
 ) {
-    val children = listOf(firstChild, secondChild)
+    val children = remember { listOfNotNull(firstChild, secondChild) }
 
-    if (children.count { it != null } > 2) {
-        throw IllegalStateException("CustomContainerCompose может содержать не более 2 элементов")
-    }
+    if (children.isEmpty()) return
 
     val alphaAnimation = remember { Animatable(0f) }
     val offsetAnimation = remember { Animatable(0f) }
@@ -65,10 +63,10 @@ fun CustomContainerCompose(
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val containerHeight = constraints.maxHeight.toFloat()
-        val firstChildHeight = remember { mutableStateOf(0f) }
-        val secondChildHeight = remember { mutableStateOf(0f) }
 
         firstChild?.let { content ->
+            val firstChildHeight = remember { mutableStateOf(0f) }
+
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -87,6 +85,8 @@ fun CustomContainerCompose(
         }
 
         secondChild?.let { content ->
+            val secondChildHeight = remember { mutableStateOf(0f) }
+
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -109,19 +109,15 @@ fun CustomContainerCompose(
 @Composable
 private fun ErrorBoundary(content: @Composable () -> Unit) {
     val errorState = remember { mutableStateOf<Throwable?>(null) }
-
-
     val errorHandler = remember {
         Thread.UncaughtExceptionHandler { _, e ->
             Log.e("CustomContainer", "Render error", e)
             errorState.value = e
         }
     }
-
     LaunchedEffect(Unit) {
         Thread.setDefaultUncaughtExceptionHandler(errorHandler)
     }
-
     if (errorState.value != null) {
         Text(
             text = "Render error: ${errorState.value?.message}",

@@ -10,6 +10,7 @@ import android.view.animation.Animation
 import android.view.animation.AnimationSet
 import android.view.animation.TranslateAnimation
 import android.widget.FrameLayout
+import com.example.androidpracticumcustomview.R
 
 /*
 Задание:
@@ -23,11 +24,21 @@ import android.widget.FrameLayout
 class CustomContainer @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-    private val animationDuration: Long = 2000L,
-    private val offsetDuration: Long = 5000L
-) : FrameLayout(context, attrs) {
+    defStyleAttr: Int = 0
+) : FrameLayout(context, attrs, defStyleAttr) {
+
+    private var animationDuration: Long = 2000L
+    private var offsetDuration: Long = 5000L
 
     init {
+        context.theme.obtainStyledAttributes(attrs, R.styleable.CustomContainer, defStyleAttr, 0).apply {
+            try {
+                animationDuration = getInteger(R.styleable.CustomContainer_animationDuration, 2000).toLong()
+                offsetDuration = getInteger(R.styleable.CustomContainer_offsetDuration, 5000).toLong()
+            } finally {
+                recycle()
+            }
+        }
         setWillNotDraw(false)
     }
 
